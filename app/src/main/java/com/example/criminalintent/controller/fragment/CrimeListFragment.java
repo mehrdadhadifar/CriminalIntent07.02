@@ -6,6 +6,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,9 +20,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.criminalintent.R;
 import com.example.criminalintent.controller.activity.CrimePagerActivity;
+import com.example.criminalintent.databinding.FragmentCrimeListBinding;
+import com.example.criminalintent.databinding.ListRowCrimeBinding;
 import com.example.criminalintent.model.Crime;
 import com.example.criminalintent.repository.CrimeDBRepository;
 import com.example.criminalintent.repository.IRepository;
@@ -32,10 +36,10 @@ public class CrimeListFragment extends Fragment {
 
     public static final String TAG = "CLF";
     public static final String BUNDLE_IS_SUBTITLE_VISIBLE = "isSubtitleVisible";
-    private RecyclerView mRecyclerView;
     private IRepository<Crime> mRepository;
     private CrimeAdapter mAdapter;
     private CallBacks mCallBacks;
+    private FragmentCrimeListBinding mCrimeListBinding;
 
     private boolean mIsSubtitleVisible = false;
 
@@ -85,16 +89,19 @@ public class CrimeListFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_crime_list, container, false);
+        mCrimeListBinding = DataBindingUtil.inflate(
+                inflater,
+                R.layout.fragment_crime_list,
+                container,
+                false
+        );
 
-        findViews(view);
 
         //recyclerview responsibility: positioning
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mCrimeListBinding.recyclerViewCrimes.setLayoutManager(new LinearLayoutManager(getActivity()));
         updateUI();
 
-        return view;
+        return mCrimeListBinding.getRoot();
     }
 
     @Override
@@ -142,16 +149,13 @@ public class CrimeListFragment extends Fragment {
         outState.putBoolean(BUNDLE_IS_SUBTITLE_VISIBLE, mIsSubtitleVisible);
     }
 
-    private void findViews(View view) {
-        mRecyclerView = view.findViewById(R.id.recycler_view_crimes);
-    }
 
     public void updateUI() {
         List<Crime> crimes = mRepository.getList();
 
         if (mAdapter == null) {
             mAdapter = new CrimeAdapter(crimes);
-            mRecyclerView.setAdapter(mAdapter);
+            mCrimeListBinding.recyclerViewCrimes.setAdapter(mAdapter);
         } else {
             mAdapter.setCrimes(crimes);
             mAdapter.notifyDataSetChanged();
@@ -184,34 +188,34 @@ public class CrimeListFragment extends Fragment {
     }
 
     //view holder responsibility: hold reference to row views.
-    private class CrimeHolder extends RecyclerView.ViewHolder {
+    public class CrimeHolder extends RecyclerView.ViewHolder {
 
         private Crime mCrime;
-        private TextView mTextViewTitle;
-        private TextView mTextViewDate;
-        private ImageView mImageViewSolved;
+        private ListRowCrimeBinding mCrimeBinding;
 
-        public CrimeHolder(@NonNull View itemView) {
-            super(itemView);
 
-            mTextViewTitle = itemView.findViewById(R.id.list_row_crime_title);
-            mTextViewDate = itemView.findViewById(R.id.list_row_crime_date);
-            mImageViewSolved = itemView.findViewById(R.id.imgview_solved);
+        public CrimeHolder(@NonNull ListRowCrimeBinding crimeBinding) {
+            super(crimeBinding.getRoot());
+            this.mCrimeBinding = crimeBinding;
 
-            itemView.setOnClickListener(new View.OnClickListener() {
+            crimeBinding.getRoot().setOnClickListener(new View.OnClickListener() {
                 @Override
-                public void onClick(View view) {
-                    mCallBacks.onCrimeSelected(mCrime);
+                public void onClick(View v) {
+                    mCallBacks.onCrimeSelected(mCrimeBinding.getCrime());
                 }
             });
         }
 
+
+
+        public void showCrime() {
+            mCallBacks.onCrimeSelected(mCrimeBinding.getCrime());
+            Toast.makeText(getActivity(),"sadasdad",Toast.LENGTH_LONG).show();
+        }
+
         public void bindCrime(Crime crime) {
             mCrime = crime;
-            mTextViewTitle.setText(crime.getTitle());
-            mTextViewDate.setText(crime.getDate().toString());
-
-            mImageViewSolved.setVisibility(crime.isSolved() ? View.VISIBLE : View.INVISIBLE);
+            mCrimeBinding.setCrime(mCrime);
         }
     }
 
@@ -247,10 +251,14 @@ public class CrimeListFragment extends Fragment {
             Log.d(TAG, "onCreateViewHolder");
 
             LayoutInflater inflater = LayoutInflater.from(getActivity());
-            View view = inflater.inflate(R.layout.list_row_crime, parent, false);
+            ListRowCrimeBinding crimeBinding = DataBindingUtil.inflate(
+                    inflater,
+                    R.layout.list_row_crime,
+                    parent,
+                    false
+            );
 
-            CrimeHolder crimeHolder = new CrimeHolder(view);
-            return crimeHolder;
+            return new CrimeHolder(crimeBinding);
         }
 
         @Override
